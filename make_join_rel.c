@@ -14,6 +14,8 @@
  *-------------------------------------------------------------------------
  */
 
+#define BIG_ASS_ROW_NUM 100000000
+
 static void populate_joinrel_with_paths(PlannerInfo *root, RelOptInfo *rel1,
 										RelOptInfo *rel2, RelOptInfo *joinrel,
 										SpecialJoinInfo *sjinfo,
@@ -180,10 +182,10 @@ make_join_rel(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2)
 			if (justforme->base.state == HINT_STATE_NOTUSED)
 				joinrel->rows = adjust_rows(joinrel->rows, justforme);
 		}
-		else
+		else if (domultiply)
 		{
-			if (domultiply)
-			{
+			/*if (domultiply)*/
+			/*{*/
 				/*
 				 * If we have multiple routes up to this joinrel which are not
 				 * applicable this hint, this multiply hint will applied more
@@ -194,11 +196,15 @@ make_join_rel(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2)
 				 */
 				set_joinrel_size_estimates(root, joinrel, rel1, rel2, sjinfo,
 										   restrictlist);
-				
+
 				joinrel->rows = adjust_rows(joinrel->rows, domultiply);
-			}
-			
+			/*}*/
 		}
+    else
+    {
+      debug_print("NO join row hint found\n");
+			joinrel->rows = BIG_ASS_ROW_NUM;
+    }
 	}
 	/* !!! END: HERE IS THE PART WHICH ADDED FOR PG_HINT_PLAN !!! */
 

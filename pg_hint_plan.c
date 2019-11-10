@@ -103,6 +103,18 @@ PG_MODULE_MAGIC;
 	while (isspace(*str)) \
 		str++;
 
+// pari: create new module for all these utility functions
+/*void debug_print(char *msg)*/
+/*{*/
+  /*FILE *fp = fopen("/home/ubuntu/pg_debug.txt", "ab");*/
+  /*if (fp != NULL)*/
+  /*{*/
+    /*fputs(msg, fp);*/
+    /*fflush(fp);*/
+    /*fclose(fp);*/
+  /*}*/
+/*}*/
+
 enum
 {
 	ENABLE_SEQSCAN = 0x01,
@@ -1723,7 +1735,7 @@ parse_hints(HintState *hstate, Query *parse, const char *str)
 }
 
 
-/* 
+/*
  * Get hints from table by client-supplied query string and application name.
  */
 static const char *
@@ -1755,9 +1767,9 @@ get_hints_from_table(const char *client_query, const char *client_application)
 			PushActiveSnapshot(GetTransactionSnapshot());
 			snapshot_set = true;
 		}
-	
+
 		SPI_connect();
-	
+
 		if (plan == NULL)
 		{
 			SPIPlanPtr	p;
@@ -1765,18 +1777,18 @@ get_hints_from_table(const char *client_query, const char *client_application)
 			plan = SPI_saveplan(p);
 			SPI_freeplan(p);
 		}
-	
+
 		qry = cstring_to_text(client_query);
 		app = cstring_to_text(client_application);
 		values[0] = PointerGetDatum(qry);
 		values[1] = PointerGetDatum(app);
-	
+
 		SPI_execute_plan(plan, values, nulls, true, 1);
-	
+
 		if (SPI_processed > 0)
 		{
 			char	*buf;
-	
+
 			hints = SPI_getvalue(SPI_tuptable->vals[0],
 								 SPI_tuptable->tupdesc, 1);
 			/*
@@ -1789,7 +1801,7 @@ get_hints_from_table(const char *client_query, const char *client_application)
 			strcpy(buf, hints);
 			hints = buf;
 		}
-	
+
 		SPI_finish();
 
 		if (snapshot_set)
@@ -1849,7 +1861,7 @@ get_query_string(ParseState *pstate, Query *query, Query **jumblequery)
 		if (IsA(target_query, ExplainStmt))
 		{
 			ExplainStmt *stmt = (ExplainStmt *)target_query;
-			
+
 			Assert(IsA(stmt->query, Query));
 			target_query = (Query *)stmt->query;
 
@@ -1895,7 +1907,7 @@ get_query_string(ParseState *pstate, Query *query, Query **jumblequery)
 			p = entry->plansource->query_string;
 			target_query = (Query *) linitial (entry->plansource->query_list);
 		}
-			
+
 		/* JumbleQuery accespts only a non-utility Query */
 		if (!IsA(target_query, Query) ||
 			target_query->utilityStmt != NULL)
@@ -1992,6 +2004,7 @@ get_hints_from_comment(const char *p)
 static HintState *
 create_hintstate(Query *parse, const char *hints)
 {
+  debug_print("create_hintstate\n");
 	const char *p;
 	int			i;
 	HintState   *hstate;
@@ -2473,7 +2486,7 @@ ParallelHintParse(ParallelHint *hint, HintState *hstate, Query *parse,
 	}
 
 	hint->relname = linitial(name_list);
-		
+
 	/* The second parameter is number of workers */
 	hint->nworkers_str = list_nth(name_list, 1);
 	nworkers = strtod(hint->nworkers_str, &end_ptr);
@@ -2833,7 +2846,7 @@ get_current_hint_string(ParseState *pstate, Query *query)
 			pfree((void *)current_hint_str);
 			current_hint_str = NULL;
 		}
-		
+
 		if (jumblequery)
 		{
 			/*
@@ -2997,7 +3010,7 @@ pg_hint_plan_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	const char 	   *prev_hint_str;
 
 	/*
-	 * Use standard planner if pg_hint_plan is disabled or current nesting 
+	 * Use standard planner if pg_hint_plan is disabled or current nesting
 	 * depth is nesting depth of SPI calls. Other hook functions try to change
 	 * plan with current_hint_state if any, so set it to NULL.
 	 */
@@ -3046,7 +3059,7 @@ pg_hint_plan_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	/* run standard planner if the statement has not valid hint */
 	if (!hstate)
 		goto standard_planner_proc;
-	
+
 	/*
 	 * Push new hint struct to the hint stack to disable previous hint context.
 	 */
@@ -3059,7 +3072,7 @@ pg_hint_plan_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	setup_guc_enforcement(current_hint_state->set_hints,
 						   current_hint_state->num_hints[HINT_TYPE_SET],
 						   current_hint_state->context);
-	
+
 	current_hint_state->init_scan_mask = get_current_scan_mask();
 	current_hint_state->init_join_mask = get_current_join_mask();
 	current_hint_state->init_min_para_tablescan_size =
@@ -3082,7 +3095,7 @@ pg_hint_plan_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	{
 		ereport(pg_hint_plan_debug_message_level,
 				(errhidestmt(msgqno != qno),
-				 errmsg("pg_hint_plan%s: planner", qnostr))); 
+				 errmsg("pg_hint_plan%s: planner", qnostr)));
 		msgqno = qno;
 	}
 
@@ -3093,7 +3106,7 @@ pg_hint_plan_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	 */
 	recurse_level++;
 	prev_hint_str = current_hint_str;
-	
+
 	/*
 	 * Use PG_TRY mechanism to recover GUC parameters and current_hint_state to
 	 * the state when this planner started when error occurred in planner.
@@ -3255,7 +3268,7 @@ find_parallel_hint(PlannerInfo *root, Index relid)
 
 	/*
 	 * Parallel planning is appliable only on base relation, which has
-	 * RelOptInfo. 
+	 * RelOptInfo.
 	 */
 	if (!rel)
 		return NULL;
@@ -3574,7 +3587,7 @@ restrict_indexes(PlannerInfo *root, ScanMethodHint *hint, RelOptInfo *rel,
 			disprelname = get_rel_name(rte->relid);
 		else
 			disprelname = hint->relname;
-			
+
 
 		initStringInfo(&rel_buf);
 		quote_value(&rel_buf, disprelname);
@@ -3589,7 +3602,7 @@ restrict_indexes(PlannerInfo *root, ScanMethodHint *hint, RelOptInfo *rel,
 	}
 }
 
-/* 
+/*
  * Return information of index definition.
  */
 static ParentIndexInfo *
@@ -3756,7 +3769,7 @@ setup_hint_enforcement(PlannerInfo *root, RelOptInfo *rel,
 		 * hinthintredundant setup cost.
 		 */
 		current_hint_state->parent_relid = new_parent_relid;
-				
+
 		/* Find hints for the parent */
 		current_hint_state->parent_scan_hint =
 			find_scan_hint(root, current_hint_state->parent_relid);
@@ -4100,6 +4113,11 @@ transform_join_hints(HintState *hstate, PlannerInfo *root, int nbaserel,
 	ListCell	   *l;
 	char		   *relname;
 	LeadingHint	   *lhint = NULL;
+  char debug_text[1000];
+  sprintf(debug_text, "num hints join method: %d, leading: %d, rows: %d\n",
+      hstate->num_hints[HINT_TYPE_JOIN_METHOD], hstate->num_hints[HINT_TYPE_LEADING],
+      hstate->num_hints[HINT_TYPE_ROWS]);
+  debug_print(debug_text);
 
 	/*
 	 * Create bitmap of relids from alias names for each join method hint.
@@ -4137,20 +4155,31 @@ transform_join_hints(HintState *hstate, PlannerInfo *root, int nbaserel,
 									 initial_rels, hint->nrels, hint->relnames);
 	}
 
+  /*sprintf(debug_text, "num hints join method: %d, leading: %d, rows: %d\n",*/
+      /*hstate->num_hints[HINT_TYPE_JOIN_METHOD], hstate->num_hints[HINT_TYPE_LEADING],*/
+      /*hstate->num_hints[HINT_TYPE_ROWS]);*/
+
 	/* Do nothing if no Leading hint was supplied. */
-	if (hstate->num_hints[HINT_TYPE_LEADING] == 0)
+	if (hstate->num_hints[HINT_TYPE_LEADING] == 0) {
+    debug_print("returning because no leading hint supplied\n");
 		return false;
+  }
 
 	/*
 	 * Decide whether to use Leading hint
  	 */
 	for (i = 0; i < hstate->num_hints[HINT_TYPE_LEADING]; i++)
 	{
+    sprintf(debug_text, "processing leading hint %d\n", i);
+    debug_print(debug_text);
+
 		LeadingHint	   *leading_hint = (LeadingHint *)hstate->leading_hint[i];
 		Relids			relids;
 
-		if (leading_hint->base.state == HINT_STATE_ERROR)
+		if (leading_hint->base.state == HINT_STATE_ERROR) {
+      debug_print("leading_hint->base.state == HINT_STATE_ERROR\n");
 			continue;
+    }
 
 		relid = 0;
 		relids = NULL;
@@ -4158,6 +4187,7 @@ transform_join_hints(HintState *hstate, PlannerInfo *root, int nbaserel,
 		foreach(l, leading_hint->relations)
 		{
 			relname = (char *)lfirst(l);;
+      debug_print(relname);
 
 			relid = find_relid_aliasname(root, relname, initial_rels,
 										 leading_hint->base.hint_str);
@@ -4183,6 +4213,9 @@ transform_join_hints(HintState *hstate, PlannerInfo *root, int nbaserel,
 
 		if (lhint != NULL)
 		{
+      debug_print("error1\n");
+			sprintf(debug_text, "Conflict %s hint.\n", HintTypeName[lhint->base.type]);
+      debug_print(debug_text);
 			hint_ereport(lhint->base.hint_str,
 				 ("Conflict %s hint.", HintTypeName[lhint->base.type]));
 			lhint->base.state = HINT_STATE_DUPLICATION;
@@ -4192,9 +4225,12 @@ transform_join_hints(HintState *hstate, PlannerInfo *root, int nbaserel,
 	}
 
 	/* check to exist Leading hint marked with 'used'. */
-	if (lhint == NULL)
+	if (lhint == NULL) {
+    debug_print("lhint NULL, returning...\n");
 		return false;
+  }
 
+  debug_print("lhint was not null\n");
 	/*
 	 * We need join method hints which fit specified join order in every join
 	 * level.  For example, Leading(A B C) virtually requires following join
@@ -4456,6 +4492,8 @@ pg_hint_plan_join_search(PlannerInfo *root, int levels_needed,
 	RelOptInfo		   *rel;
 	int					i;
 	bool				leading_hint_enable;
+  debug_print("pg_hint_plan_join_search\n");
+  char debug_text[100];
 
 	/*
 	 * Use standard planner (or geqo planner) if pg_hint_plan is disabled or no
@@ -4471,13 +4509,19 @@ pg_hint_plan_join_search(PlannerInfo *root, int levels_needed,
 		else
 			return standard_join_search(root, levels_needed, initial_rels);
 	}
+  debug_print("after first if <-> else\n");
+  sprintf(debug_text, "enable geqo: %d, levels_needed: %d\n",
+      enable_geqo, levels_needed);
+  debug_print(debug_text);
 
 	/*
 	 * In the case using GEQO, only scan method hints and Set hints have
 	 * effect.  Join method and join order is not controllable by hints.
 	 */
-	if (enable_geqo && levels_needed >= geqo_threshold)
+	if (enable_geqo && levels_needed >= geqo_threshold) {
+    debug_print("return geqo1\n");
 		return geqo(root, levels_needed, initial_rels);
+  }
 
 	nbaserel = get_num_baserels(initial_rels);
 	current_hint_state->join_hint_level =
@@ -4487,6 +4531,9 @@ pg_hint_plan_join_search(PlannerInfo *root, int levels_needed,
 	leading_hint_enable = transform_join_hints(current_hint_state,
 											   root, nbaserel,
 											   initial_rels, join_method_hints);
+  debug_print("after transform join hints!\n");
+  sprintf(debug_text, "leading hint: %d\n", leading_hint_enable);
+  debug_print(debug_text);
 
 	rel = pg_hint_plan_standard_join_search(root, levels_needed, initial_rels);
 

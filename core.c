@@ -50,6 +50,16 @@
  *-------------------------------------------------------------------------
  */
 
+void debug_print(char *msg)
+{
+  FILE *fp = fopen("/home/ubuntu/pg_debug_core.txt", "ab");
+  if (fp != NULL)
+  {
+    fputs(msg, fp);
+    fflush(fp);
+    fclose(fp);
+  }
+}
 
 /*
  * set_plain_rel_pathlist
@@ -753,6 +763,7 @@ standard_join_search(PlannerInfo *root, int levels_needed, List *initial_rels)
 void
 join_search_one_level(PlannerInfo *root, int level)
 {
+  debug_print("join search one level\n");
 	List	  **joinrels = root->join_rel_level;
 	ListCell   *r;
 	int			k;
@@ -814,9 +825,10 @@ join_search_one_level(PlannerInfo *root, int level)
 			 * such cases aren't common enough to justify adding complexity to
 			 * avoid the duplicated effort.
 			 */
-			make_rels_by_clauseless_joins(root,
-										  old_rel,
-										  list_head(joinrels[1]));
+      debug_print("cartesian join1");
+			/*make_rels_by_clauseless_joins(root,*/
+											/*old_rel,*/
+											/*list_head(joinrels[1]));*/
 		}
 	}
 
@@ -901,6 +913,7 @@ join_search_one_level(PlannerInfo *root, int level)
 	 */
 	if (joinrels[level] == NIL)
 	{
+    debug_print("going to do cartesian join2..\n");
 		/*
 		 * This loop is just like the first one, except we always call
 		 * make_rels_by_clauseless_joins().
