@@ -52,13 +52,13 @@
 
 void debug_print(char *msg)
 {
-  FILE *fp = fopen("/home/ubuntu/pg_debug_core.txt", "ab");
-  if (fp != NULL)
-  {
-    fputs(msg, fp);
-    fflush(fp);
-    fclose(fp);
-  }
+  /*FILE *fp = fopen("/home/ubuntu/pg_debug_core.txt", "ab");*/
+  /*if (fp != NULL)*/
+  /*{*/
+    /*fputs(msg, fp);*/
+    /*fflush(fp);*/
+    /*fclose(fp);*/
+  /*}*/
 }
 
 /*
